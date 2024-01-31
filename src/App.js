@@ -5,9 +5,11 @@ const candyColors = ["blue", "green", "orange", "purple", "red", "yellow"];
 
 function App() {
   const [currentColorArrangement, setCurrentColorArrangement] = useState([]);
+  const [squareBeingDragged, setSquareBeingDragged] = useState(null);
+  const [squareBeingReplaced, setSquareBeingReplaced] = useState(null);
 
   const checkForColumnOfFour = () => {
-    for (let i = 0; i < 39; i++) {
+    for (let i = 0; i <= 39; i++) {
       const columnofFour = [i, i + width, i + width * 2, i + width * 3];
       const decidedColor = currentColorArrangement[i];
 
@@ -19,12 +21,13 @@ function App() {
         columnofFour.forEach(
           (square) => (currentColorArrangement[square] = "")
         );
+        return true;
       }
     }
   };
 
   const checkForColumnOfThree = () => {
-    for (let i = 0; i < 47; i++) {
+    for (let i = 0; i <= 47; i++) {
       const columnofThree = [i, i + width, i + width * 2];
       const decidedColor = currentColorArrangement[i];
 
@@ -36,6 +39,7 @@ function App() {
         columnofThree.forEach(
           (square) => (currentColorArrangement[square] = "")
         );
+        return true;
       }
     }
   };
@@ -55,6 +59,7 @@ function App() {
         )
       ) {
         rowOfFour.forEach((square) => (currentColorArrangement[square] = ""));
+        return true;
       }
     }
   };
@@ -73,7 +78,68 @@ function App() {
         )
       ) {
         rowOfThree.forEach((square) => (currentColorArrangement[square] = ""));
+        return true;
       }
+    }
+  };
+
+  const moveIntoSquareBelow = () => {
+    for (let i = 0; i <= 55 - width; i++) {
+      const firstRow = [0, 1, 2, 3, 4, 5, 6, 7];
+      const isFirstRow = firstRow.includes(i);
+      if (isFirstRow && currentColorArrangement[i] === "") {
+        let randomNumber = Math.floor(Math.random() * candyColors.length);
+        currentColorArrangement[i] = candyColors[randomNumber];
+      }
+      if (currentColorArrangement[i + width] === "") {
+        currentColorArrangement[i + width] = currentColorArrangement[i];
+        currentColorArrangement[i] = "";
+      }
+    }
+  };
+
+  const dragStart = (e) => {
+    setSquareBeingDragged(e.target);
+  };
+  const dragDrop = (e) => {
+    setSquareBeingReplaced(e.target);
+  };
+  const dragEnd = (e) => {
+    const squareBeingDraggedId = parseInt(
+      squareBeingDragged.getAttribute("data-id")
+    );
+    const squareBeingReplacedId = parseInt(
+      squareBeingReplaced.getAttribute("data-id")
+    );
+    currentColorArrangement[squareBeingReplacedId] =
+      squareBeingDragged.style.backgroundColor;
+    currentColorArrangement[squareBeingDraggedId] =
+      squareBeingReplaced.style.backgroundColor;
+    const validMoves = [
+      squareBeingDraggedId - 1,
+      squareBeingDraggedId - width,
+      squareBeingDraggedId + 1,
+      squareBeingDraggedId + width,
+    ];
+    const validMove = validMoves.includes(squareBeingReplacedId);
+    const isAColumnOfFour = checkForColumnOfFour();
+    const isAColumnOfThree = checkForColumnOfThree();
+    const isARowOfFour = checkForRowOfFour();
+    const isARowOfThree = checkForRowOfThree();
+
+    if (
+      squareBeingReplacedId &&
+      validMove &&
+      (isAColumnOfFour || isAColumnOfThree || isARowOfFour || isARowOfThree)
+    ) {
+      setSquareBeingDragged(null);
+      setSquareBeingReplaced(null);
+    } else {
+      currentColorArrangement[squareBeingReplacedId] =
+        squareBeingReplaced.style.backgroundColor;
+      currentColorArrangement[squareBeingDraggedid] =
+        squareBeingReplaced.style.backgroundColor;
+      setCurrentColorArrangement([...currentColorArrangement]);
     }
   };
 
@@ -96,14 +162,16 @@ function App() {
       checkForRowOfFour();
       checkForColumnOfThree();
       checkForRowOfThree();
+      moveIntoSquareBelow();
       setCurrentColorArrangement([...currentColorArrangement]);
-    }, 100);
+    }, 500);
     return () => clearInterval(timer);
   }, [
     checkForColumnOfFour,
     checkForRowOfFour,
     checkForColumnOfThree,
     checkForRowOfThree,
+    moveIntoSquareBelow,
     currentColorArrangement,
   ]);
 
@@ -115,6 +183,14 @@ function App() {
             key={index}
             style={{ backgroundColor: candyColor }}
             alt={candyColor}
+            data-id={index}
+            draggable={true}
+            onDragStart={dragStart}
+            onDragOver={(e) => e.preventDefault()}
+            onDragEnter={(e) => e.preventDefault()}
+            onDragLeave={(e) => e.preventDefault()}
+            onDrop={dragDrop}
+            onDragEnd={dragEnd}
           />
         ))}
       </div>
